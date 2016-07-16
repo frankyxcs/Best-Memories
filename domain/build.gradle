@@ -1,0 +1,19 @@
+apply plugin: 'java'
+
+configurations {
+    provided
+}
+
+dependencies {
+    def domainDependencies = rootProject.ext.domainDependencies
+    def domainTestDependencies = rootProject.ext.domainTestDependencies
+
+    compile domainDependencies.dagger
+    compile domainDependencies.rxJava
+
+    provided domainDependencies.daggerCompiler
+    provided domainDependencies.javaxAnnotation
+
+    testCompile domainTestDependencies.junit
+    testCompile domainTestDependencies.mockito
+}

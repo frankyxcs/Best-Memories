@@ -1,0 +1,73 @@
+apply plugin: 'com.android.application'
+apply plugin: 'com.neenbedankt.android-apt'
+apply plugin: 'com.fernandocejas.frodo'
+apply plugin: 'android-apt'
+
+android {
+    def globalConfiguration = rootProject.extensions.getByName("ext")
+
+    compileSdkVersion globalConfiguration.getAt("androidCompileSdkVersion")
+    buildToolsVersion globalConfiguration.getAt("androidBuildToolsVersion")
+
+    defaultConfig {
+        minSdkVersion globalConfiguration.getAt("androidMinSdkVersion")
+        targetSdkVersion globalConfiguration.getAt("androidTargetSdkVersion")
+
+        applicationId globalConfiguration.getAt("androidApplicationId")
+        versionCode globalConfiguration.getAt("androidVersionCode")
+        versionName globalConfiguration.getAt("androidVersionName")
+        testInstrumentationRunner globalConfiguration.getAt("testInstrumentationRunner")
+        testApplicationId globalConfiguration.getAt("testApplicationId")
+    }
+
+    buildTypes {
+        release {
+            shrinkResources true
+            minifyEnabled true
+
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+        debug {
+            shrinkResources false
+            minifyEnabled false
+
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+
+dependencies {
+    def presentationDependencies = rootProject.ext.presentationDependencies
+    def presentationTestDependencies = rootProject.ext.presentationTestDependencies
+
+    apt presentationDependencies.daggerCompiler
+    compile presentationDependencies.dagger
+    compile presentationDependencies.butterKnife
+    compile presentationDependencies.rxJava
+    compile presentationDependencies.rxAndroid
+    compile presentationDependencies.recyclerView
+    compile presentationDependencies.support
+    compile presentationDependencies.appCompat
+    compile presentationDependencies.design
+    compile presentationDependencies.fab
+    compile presentationDependencies.gson
+    compile presentationDependencies.jackson
+    compile presentationDependencies.eventbus
+    compile presentationDependencies.universalImageLoaderVersion
+    compile presentationDependencies.analitics
+    compile presentationDependencies.appindexingVersion
+
+    provided presentationDependencies.javaxAnnotation
+
+    apt presentationDependencies.butterKnifeCompiler
+
+    androidTestCompile presentationTestDependencies.mockito
+    androidTestCompile presentationTestDependencies.dexmaker
+    androidTestCompile presentationTestDependencies.dexmakerMockito
+    androidTestCompile presentationTestDependencies.espresso
+    androidTestCompile presentationTestDependencies.testingSupportLib
+
+    compile fileTree(include: ['*.jar'], dir: 'libs')
+    compile project(':data')
+    compile project(':domain')
+}
