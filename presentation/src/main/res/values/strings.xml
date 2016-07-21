@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Best Memories</string>
+    <string name="wallpaper_description">Best Memories Setting Activity</string>
+    <string name="setWallpaper">Set wallpaper</string>
 </resources>

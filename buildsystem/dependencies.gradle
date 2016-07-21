@@ -32,6 +32,7 @@ ext {
     universalImageLoaderVersion = '1.9.3'
     okHttpVersion3 = '3.2.0'
     httpLoginInterceptor = '3.0.1'
+    glide = '3.6.1'
 
 /////////////////////// TESTING ////////////////////////////////
     robolectricVersion = '3.0'
@@ -61,7 +62,8 @@ ext {
             eventbus                   : "org.greenrobot:eventbus:${eventBusVersion}",
             universalImageLoaderVersion: "com.nostra13.universalimageloader:universal-image-loader:${universalImageLoaderVersion}",
             analitics                  : "com.google.android.gms:play-services-analytics:${playService}",
-            appindexingVersion         : "com.google.android.gms:play-services-appindexing:${playService}"
+            appindexingVersion         : "com.google.android.gms:play-services-appindexing:${playService}",
+            glide                      : "com.github.bumptech.glide:glide:${glide}"
     ]
 
     presentationTestDependencies = [

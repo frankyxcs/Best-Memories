@@ -17,11 +17,11 @@ allprojects {
         jcenter()
     }
     ext {
-        androidApplicationId = 'co.otenti'
-        androidVersionCode = 19
-        androidVersionName = "1.02.19"
+        androidApplicationId = 'com.best.memories'
+        androidVersionCode = 1
+        androidVersionName = "1"
         testInstrumentationRunner = "android.support.test.runner.AndroidJUnitRunner"
-        testApplicationId = 'com.best.memories'
+        testApplicationId = 'com.best.memories.test'
     }
 }
 

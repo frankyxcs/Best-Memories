@@ -56,6 +56,7 @@ dependencies {
     compile presentationDependencies.universalImageLoaderVersion
     compile presentationDependencies.analitics
     compile presentationDependencies.appindexingVersion
+    compile presentationDependencies.glide
 
     provided presentationDependencies.javaxAnnotation
 
@@ -70,4 +71,5 @@ dependencies {
     compile fileTree(include: ['*.jar'], dir: 'libs')
     compile project(':data')
     compile project(':domain')
+
 }
