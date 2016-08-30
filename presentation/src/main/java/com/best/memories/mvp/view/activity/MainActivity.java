@@ -21,13 +21,15 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         ButterKnife.bind(this);
+
+        Intent intent = new Intent(ACTION_CHANGE_LIVE_WALLPAPER);
+        intent.putExtra(EXTRA_LIVE_WALLPAPER_COMPONENT, new ComponentName(this, BestMemoriesWallpaperService.class));
+        startActivity(intent);
     }
 
     @OnClick(R.id.btSetWallpaper)
     public void clickWallpaper() {
-        Intent intent = new Intent(ACTION_CHANGE_LIVE_WALLPAPER);
-        intent.putExtra(EXTRA_LIVE_WALLPAPER_COMPONENT, new ComponentName(this, BestMemoriesWallpaperService.class));
-        startActivity(intent);
+
     }
 
 }
