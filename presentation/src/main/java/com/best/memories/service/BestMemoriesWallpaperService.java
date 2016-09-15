@@ -4,25 +4,17 @@ import android.content.res.TypedArray;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
-import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.Paint;
-import android.graphics.PorterDuff;
 import android.graphics.RectF;
-import android.media.ThumbnailUtils;
 import android.os.Handler;
 import android.service.wallpaper.WallpaperService;
-import android.util.Log;
+import android.support.annotation.NonNull;
 import android.view.SurfaceHolder;
 
 import com.best.memories.R;
-import com.best.memories.application.BestMemoriesApplication;
-
-import java.util.Random;
 
 import static android.graphics.Color.TRANSPARENT;
-import static android.graphics.Color.alpha;
-import static android.graphics.Color.red;
 import static android.graphics.Matrix.ScaleToFit.CENTER;
 import static android.graphics.PorterDuff.Mode.CLEAR;
 
@@ -37,13 +29,14 @@ public class BestMemoriesWallpaperService extends WallpaperService {
     }
 
     private class BestMemoriesWallpaperEngine extends Engine {
-        private final Bitmap bitmap;
-        private final MyRunnableImage drawRunner;
-        private final int centerBitmapY;
-        private float left;
-        private float top;
-        private float right;
-        private float bottom;
+        private Bitmap bitmap;
+        private MyRunnableImage drawRunner;
+        private int centerBitmapY;
+        private Bitmap bitmapNew;
+        private float leftSide;
+        private float topSide;
+        private float rightSide;
+        private float bottomSide;
         public static final int DELAY_MILLIS = 5;
         private final Handler handlerDrawBitmap = new Handler();
         private final Handler handlerAnimateDrawable = new Handler();
@@ -54,27 +47,27 @@ public class BestMemoriesWallpaperService extends WallpaperService {
 
         private boolean moveLeft;
         private boolean moveRight = true;
-        private boolean mLastZoomOut;
-        private float baseLeft;
-        private float baseTop;
-        private float baseRight;
+        private boolean mLastZoomIn;
+        private float baseLeftSide;
+        private float baseTopSide;
+        private float baseRightSide;
         private float baseBottom;
         private int alpha = 100;
 
         public BestMemoriesWallpaperEngine() {
             list = getResources().obtainTypedArray(R.array.image);
-
-            bitmap = BitmapFactory.decodeResource(getResources(), R.drawable.image);
-            centerBitmapX = bitmap.getWidth() / 2;
-            centerBitmapY = bitmap.getHeight() / 2;
-
-            drawRunner = new MyRunnableImage(bitmap);
-
-            handlerDrawBitmap.post(drawRunner);
+//
+//             centerBitmapX = bitmap.getWidth() / 2;
+//            centerBitmapY = bitmap.getHeight() / 2;
+//
+//            drawRunner = new MyRunnableImage(bitmap);
+//
+//            handlerDrawBitmap.post(drawRunner);
         }
 
         @Override
         public void onSurfaceCreated(SurfaceHolder holder) {
+
             super.onSurfaceCreated(holder);
         }
 
@@ -94,19 +87,41 @@ public class BestMemoriesWallpaperService extends WallpaperService {
             super.onSurfaceChanged(holder, format, width, height);
             screenWidth = width;
             screenHeight = height;
+
+            bitmap = BitmapFactory.decodeResource(getResources(), R.drawable.image);
+
+            int outWidth = bitmap.getWidth();
+            int outHeight = bitmap.getHeight();
+
+            if (screenWidth > bitmap.getWidth()) {
+                outWidth = outWidth + screenWidth / 2;
+                outHeight = outHeight + screenHeight / 2;
+            } else if (screenHeight > bitmap.getHeight()) {
+                outHeight = outHeight + screenHeight / 2;
+            }
+
+            bitmapNew = Bitmap.createScaledBitmap(bitmap, outWidth, outHeight, true);
+
+            centerBitmapX = bitmapNew.getWidth() / 2;
+            centerBitmapY = bitmapNew.getHeight() / 2;
+
+            drawRunner = new MyRunnableImage(bitmapNew);
+
+            handlerDrawBitmap.post(drawRunner);
+
             calculateRectanglePoints();
         }
 
         private void calculateRectanglePoints() {
-            left = Math.abs(centerBitmapX - screenWidth / 2);
-            top = Math.abs(centerBitmapY - screenHeight / 2);
-            right = Math.abs(centerBitmapX + screenWidth / 2);
-            bottom = Math.abs(centerBitmapY + screenHeight / 2);
+            leftSide = Math.abs(centerBitmapX - screenWidth / 2);
+            topSide = Math.abs(centerBitmapY - screenHeight / 2);
+            rightSide = Math.abs(centerBitmapX + screenWidth / 2);
+            bottomSide = Math.abs(centerBitmapY + screenHeight / 2);
 
-            baseLeft = left;
-            baseTop = top;
-            baseRight = right;
-            baseBottom = bottom;
+            baseLeftSide = leftSide;
+            baseTopSide = topSide;
+            baseRightSide = rightSide;
+            baseBottom = bottomSide;
         }
 
         @Override
@@ -138,70 +153,26 @@ public class BestMemoriesWallpaperService extends WallpaperService {
                     canvas = holder.lockCanvas();
                     canvas.drawColor(TRANSPARENT, CLEAR);
 
-                    float offset = 1;
+                    float offset = 2;
                     float borderMargin = 0;
 
-                    if (!mScaleImage && right <= mImage.getWidth() && moveRight) {
-                        moveLeft = false;
-
-                        if (left < baseLeft) {
-                            left = left + offset;
-                        } else {
-                            right = right + offset;
-                        }
-                    } else {
-                        if (!mScaleImage && left > borderMargin && moveLeft) {
-                            moveRight = false;
-
-                            if (right > baseRight) {
-                                right = right - offset;
-                            } else {
-                                left = left - offset;
-                            }
-
-                        } else if (left <= borderMargin) {
-                            moveRight = true;
-                        } else if (right >= mImage.getWidth()) {
-                            moveLeft = true;
-                        }
+                    if (!mScaleImage && rightSide <= mImage.getWidth() && moveRight) {
+                        moveImageRight(offset);
+                    } else if (!mScaleImage && leftSide > borderMargin && moveLeft) {
+                        moveImageLeft(offset);
+                    } else if (leftSide <= borderMargin) {
+                        moveRight = true;
+                    } else if (rightSide >= mImage.getWidth()) {
+                        moveLeft = true;
                     }
 
-                    ///////////////////////////////////////////////////
-                    if (moveRight && left == baseLeft - 1) {
-                        mScaleImage = true;
+                    if (mLastZoomIn) {
+                        zoomImageIn(offset);
+                    } else if (mScaleImage) {
+                        zoomImageOut(offset);
                     }
 
-                    if (mScaleImage && top > 0 && bottom < mImage.getHeight()) {
-                        top = top - offset;
-                        bottom = bottom + offset;
-
-                        if (top == 1) {
-                            mLastZoomOut = true;
-                        }
-                    } else if (mLastZoomOut) {
-                        mScaleImage = false;
-
-                        if (top == baseTop) {
-                            mImage = BitmapFactory.decodeResource(getResources(), R.drawable.image_2);
-                            mLastZoomOut = false;
-                        }
-
-                        if (top < baseTop) {
-                            top = top + offset;
-                        }
-                        if (bottom > baseBottom) {
-                            bottom = bottom - offset;
-                        }
-                    }
-
-
-                    RectF rectImage = new RectF(left, top, right, bottom);
-                    float left = 0;
-                    float top = 0;
-                    RectF rectScreen = new RectF(left, top, screenWidth, screenHeight);
-
-                    Matrix matrix = new Matrix();
-                    matrix.setRectToRect(rectImage, rectScreen, CENTER);
+                    Matrix matrix = getMatrix();
 
                     Paint paint = new Paint();
                     paint.setAlpha(alpha);
@@ -217,6 +188,74 @@ public class BestMemoriesWallpaperService extends WallpaperService {
                     }
                 }
             }
+
+            private void moveImageRight(float offset) {
+                moveLeft = false;
+
+                if (leftSide < baseLeftSide) {
+                    leftSide = leftSide + offset;
+
+                    if (leftSide == baseLeftSide) {
+                        mScaleImage = true;
+                    }
+
+                } else {
+                    rightSide = rightSide + offset;
+                }
+            }
+
+            private void moveImageLeft(float offset) {
+                moveRight = false;
+
+                if (rightSide > baseRightSide) {
+                    rightSide = rightSide - offset;
+                } else {
+                    leftSide = leftSide - offset;
+                }
+            }
+
+            private void zoomImageOut(float offset) {
+                topSide = topSide - offset;
+                bottomSide = bottomSide + offset;
+
+                if (topSide < baseTopSide) {
+                    topSide = topSide - offset;
+                }
+                if (bottomSide > baseBottom) {
+                    bottomSide = bottomSide + offset;
+                }
+
+                if (topSide <= baseTopSide) {
+                    mScaleImage = false;
+                    mLastZoomIn = true;
+                }
+            }
+
+            private void zoomImageIn(float offset) {
+                if (topSide < baseTopSide) {
+                    topSide = topSide + offset;
+                }
+                if (bottomSide > baseBottom) {
+                    bottomSide = bottomSide - offset;
+                }
+
+                if (topSide == baseTopSide) {
+                    mLastZoomIn = false;
+                }
+            }
+
+            @NonNull
+            private Matrix getMatrix() {
+                RectF rectImage = new RectF(leftSide, topSide, rightSide, bottomSide);
+                float left = 0;
+                float top = 0;
+                RectF rectScreen = new RectF(left, top, screenWidth, screenHeight);
+
+                Matrix matrix = new Matrix();
+                matrix.setRectToRect(rectImage, rectScreen, CENTER);
+                return matrix;
+            }
+
         }
 
     }
