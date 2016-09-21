@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <integer-array name="image">
-        <item>@drawable/ic_launcher</item>
-
+        <item>@drawable/image</item>
+        <item>@drawable/image_2</item>
+        <item>@drawable/sample1</item>
     </integer-array>
 </resources>
