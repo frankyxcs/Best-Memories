@@ -11,10 +11,7 @@ import android.view.SurfaceHolder;
 
 import com.best.memories.R;
 import com.best.memories.background.RunnableDrawImage;
-import com.best.memories.background.RunnableDrawImage.DrawBitmap;
-
-import org.greenrobot.eventbus.EventBus;
-import org.greenrobot.eventbus.Subscribe;
+import com.best.memories.background.RunnableDrawImage.IDrawBitmap;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -31,7 +28,7 @@ public class BestMemoriesWallpaperService extends WallpaperService {
         return new BestMemoriesWallpaperEngine();
     }
 
-    private class BestMemoriesWallpaperEngine extends Engine {
+    private class BestMemoriesWallpaperEngine extends Engine implements IDrawBitmap {
         static final int DELAY_MILLIS = 5;
         static final int UPDATE_OPACITY_SECOND = 2 * 1000;
         private static final long TIME_UPDATE_BITMAP = 10 * 1000;
@@ -47,8 +44,6 @@ public class BestMemoriesWallpaperService extends WallpaperService {
         private List<Bitmap> mArrayBitmaps = new ArrayList<>();
 
         BestMemoriesWallpaperEngine() {
-            EventBus.getDefault().register(this);
-
             TypedArray typedArray = getResources().obtainTypedArray(R.array.image);
 
             for (int i = 0; i < typedArray.length(); i++) {
@@ -64,12 +59,13 @@ public class BestMemoriesWallpaperService extends WallpaperService {
             super.onSurfaceChanged(holder, format, width, height);
 
             mRunnableDrawBitmap = new RunnableDrawImage(getSurfaceHolder(), width, height);
+            mRunnableDrawBitmap.setListener(this);
 
             int defaultBitmap = 0;
             Bitmap bitmap = mArrayBitmaps.get(defaultBitmap);
             mRunnableDrawBitmap.updateBitmap(bitmap);
 
-            mRunnableDrawBitmap.calculateScaledBitmapSize();
+            mRunnableDrawBitmap.calculateScaledBitmapSize(bitmap);
             mRunnableDrawBitmap.calculateRectanglePoints();
 
             mHandlerDrawBitmap.post(mRunnableDrawBitmap);
@@ -84,7 +80,6 @@ public class BestMemoriesWallpaperService extends WallpaperService {
                 mHandlerDrawBitmap.postDelayed(mRunnableDrawBitmap, DELAY_MILLIS);
                 mHandlerUpdateBitmap.postDelayed(mRunnableUpdateImage, TIME_UPDATE_BITMAP - UPDATE_OPACITY_SECOND);
             } else {
-                EventBus.getDefault().unregister(this);
                 mHandlerDrawBitmap.removeCallbacks(mRunnableDrawBitmap);
                 mHandlerUpdateOpacity.removeCallbacks(mUpdateBitmapOpacity);
             }
@@ -93,8 +88,6 @@ public class BestMemoriesWallpaperService extends WallpaperService {
         @Override
         public void onSurfaceDestroyed(SurfaceHolder holder) {
             super.onSurfaceDestroyed(holder);
-            EventBus.getDefault().unregister(this);
-
             mHandlerDrawBitmap.removeCallbacks(mRunnableDrawBitmap);
             mHandlerUpdateBitmap.removeCallbacks(mRunnableUpdateImage);
             mHandlerUpdateOpacity.removeCallbacks(mUpdateBitmapOpacity);
@@ -103,8 +96,6 @@ public class BestMemoriesWallpaperService extends WallpaperService {
         @Override
         public void onDestroy() {
             super.onDestroy();
-            EventBus.getDefault().unregister(this);
-
             mHandlerDrawBitmap.removeCallbacks(mRunnableDrawBitmap);
             mHandlerUpdateBitmap.removeCallbacks(mRunnableUpdateImage);
             mHandlerUpdateOpacity.removeCallbacks(mUpdateBitmapOpacity);
@@ -133,11 +124,11 @@ public class BestMemoriesWallpaperService extends WallpaperService {
 
         private class RunnableUpdateOpacity implements Runnable {
             private int opacity;
-            private Bitmap bitmap;
+            private Bitmap sourceBitmap;
             private static final int OPACITY_LIMIT = 100;
 
             RunnableUpdateOpacity(Bitmap bitmap) {
-                this.bitmap = bitmap;
+                this.sourceBitmap = bitmap;
             }
 
             @Override
@@ -146,18 +137,17 @@ public class BestMemoriesWallpaperService extends WallpaperService {
                 if (opacity < OPACITY_LIMIT) {
                     opacity = opacity + opacityOffset;
 
-                    bitmap = makeBitmapTransparent(this.bitmap, opacity);
+                    Bitmap bitmap = makeBitmapTransparent(sourceBitmap, opacity);
 
-                    mRunnableDrawBitmap.updateBackgroundBitmap(bitmap);
                     mRunnableDrawBitmap.setShowBackgroundBitmap(true);
-                    mHandlerUpdateOpacity.postDelayed(mUpdateBitmapOpacity, (TIME_UPDATE_BITMAP - UPDATE_OPACITY_SECOND) / 100);
+                    mRunnableDrawBitmap.updateBackgroundBitmap(bitmap);
+                    mHandlerUpdateOpacity.postDelayed(mUpdateBitmapOpacity, (TIME_UPDATE_BITMAP - UPDATE_OPACITY_SECOND) / 50);
                 } else {
-                    mHandlerUpdateOpacity.removeCallbacks(mUpdateBitmapOpacity);
-
                     mRunnableDrawBitmap.setShowBackgroundBitmap(false);
-                    mRunnableDrawBitmap.updateBitmap(bitmap);
+                    mHandlerUpdateOpacity.removeCallbacks(mUpdateBitmapOpacity);
+                    mRunnableDrawBitmap.updateBitmap(sourceBitmap);
 
-                    mRunnableDrawBitmap.calculateScaledBitmapSize();
+                    mRunnableDrawBitmap.calculateScaledBitmapSize(sourceBitmap);
                     mRunnableDrawBitmap.calculateRectanglePoints();
                 }
             }
@@ -178,8 +168,8 @@ public class BestMemoriesWallpaperService extends WallpaperService {
             }
         }
 
-        @Subscribe
-        public void drawBitmap(DrawBitmap drawBitmap) {
+        @Override
+        public void drawBitmap() {
             if (isVisible()) {
                 mHandlerDrawBitmap.postDelayed(mRunnableDrawBitmap, DELAY_MILLIS);
             }

@@ -1,6 +1,7 @@
 package com.best.memories.background;
 
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Matrix;
 import android.graphics.Paint;
@@ -11,8 +12,6 @@ import android.view.SurfaceHolder;
 
 import com.best.memories.application.BestMemoriesApplication;
 
-import org.greenrobot.eventbus.EventBus;
-
 import static android.graphics.Color.TRANSPARENT;
 import static android.graphics.Matrix.ScaleToFit.CENTER;
 import static android.graphics.PorterDuff.Mode.CLEAR;
@@ -22,15 +21,14 @@ import static android.graphics.PorterDuff.Mode.CLEAR;
  */
 
 public class RunnableDrawImage implements Runnable {
-    private final SurfaceHolder mSurfaceHolder;
     private boolean mMoveLeft;
-    private boolean mMoveRight = true;
     private boolean mScaleImageOut;
     private boolean mLastZoomIn;
+    private boolean mMoveRight = true;
+    private boolean mShowBackgroundBitmap;
 
     private int mCenterBitmapX;
     private int mCenterBitmapY;
-
     private int mScreenHeight;
     private int mScreenWidth;
 
@@ -38,16 +36,16 @@ public class RunnableDrawImage implements Runnable {
     private float mBaseTopSide;
     private float mBaseRightSide;
     private float mBaseBottom;
-
     private float mLeftSide;
     private float mTopSide;
     private float mRightSide;
     private float mBottomSide;
 
-    private boolean mShowBackgroundBitmap;
-
+    private final SurfaceHolder mSurfaceHolder;
     private Bitmap mDrawImage;
     private Bitmap mBackgroundBitmap;
+
+    private IDrawBitmap mListener;
 
     public RunnableDrawImage(SurfaceHolder surfaceHolder, int width, int height) {
         mSurfaceHolder = surfaceHolder;
@@ -71,14 +69,15 @@ public class RunnableDrawImage implements Runnable {
             paint.setFilterBitmap(true);
             paint.setDither(true);
 
+            canvas.drawBitmap(mDrawImage, matrix, paint);
+
             if (mShowBackgroundBitmap) {
                 canvas.drawBitmap(mBackgroundBitmap, 100f, 100f, null);
             }
 
-            canvas.drawBitmap(mDrawImage, matrix, paint);
-
-            DrawBitmap drawBitmap = new DrawBitmap();
-            EventBus.getDefault().post(drawBitmap);
+            if (mListener != null) {
+                mListener.drawBitmap();
+            }
 
         } finally {
             try {
@@ -209,7 +208,7 @@ public class RunnableDrawImage implements Runnable {
         return matrix;
     }
 
-   public void updateBitmap(Bitmap bitmap) {
+    public void updateBitmap(Bitmap bitmap) {
         mDrawImage = bitmap;
     }
 
@@ -221,8 +220,12 @@ public class RunnableDrawImage implements Runnable {
         mBackgroundBitmap = bitmap;
     }
 
-    public static class DrawBitmap {
+    public void setListener(IDrawBitmap listener) {
+        mListener = listener;
+    }
 
+    public interface IDrawBitmap {
+        void drawBitmap();
     }
 }
 
