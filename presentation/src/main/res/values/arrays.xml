@@ -3,6 +3,6 @@
     <integer-array name="image">
         <item>@drawable/image</item>
         <item>@drawable/image_2</item>
-        <item>@drawable/sample1</item>
+        <item>@drawable/roma</item>
     </integer-array>
 </resources>

@@ -33,7 +33,7 @@ public class BestMemoriesWallpaperService extends WallpaperService {
         static final int UPDATE_OPACITY_SECOND = 2 * 1000;
         private static final long TIME_UPDATE_BITMAP = 10 * 1000;
 
-        private int mImagePosition = 1;
+        private int mImagePosition = 0;
 
         private final Handler mHandlerDrawBitmap = new Handler();
         private final Handler mHandlerUpdateBitmap = new Handler();
@@ -60,16 +60,6 @@ public class BestMemoriesWallpaperService extends WallpaperService {
 
             mRunnableDrawBitmap = new RunnableDrawImage(getSurfaceHolder(), width, height);
             mRunnableDrawBitmap.setListener(this);
-
-            int defaultBitmap = 0;
-            Bitmap bitmap = mArrayBitmaps.get(defaultBitmap);
-            mRunnableDrawBitmap.updateBitmap(bitmap);
-
-            mRunnableDrawBitmap.calculateScaledBitmapSize(bitmap);
-            mRunnableDrawBitmap.calculateRectanglePoints();
-
-            mHandlerDrawBitmap.post(mRunnableDrawBitmap);
-            mHandlerUpdateBitmap.postDelayed(mRunnableUpdateImage, TIME_UPDATE_BITMAP - UPDATE_OPACITY_SECOND);
         }
 
         @Override
@@ -77,10 +67,19 @@ public class BestMemoriesWallpaperService extends WallpaperService {
             super.onVisibilityChanged(visible);
 
             if (visible) {
-                mHandlerDrawBitmap.postDelayed(mRunnableDrawBitmap, DELAY_MILLIS);
+
+                Bitmap bitmap = mArrayBitmaps.get(mImagePosition);
+
+                mRunnableDrawBitmap.resetStates();
+                mRunnableDrawBitmap.updateBitmap(bitmap);
+                mRunnableDrawBitmap.calculateScaledBitmapSize();
+                mRunnableDrawBitmap.calculateRectanglePoints();
+                mHandlerDrawBitmap.post(mRunnableDrawBitmap);
+
                 mHandlerUpdateBitmap.postDelayed(mRunnableUpdateImage, TIME_UPDATE_BITMAP - UPDATE_OPACITY_SECOND);
             } else {
                 mHandlerDrawBitmap.removeCallbacks(mRunnableDrawBitmap);
+                mHandlerUpdateBitmap.removeCallbacks(mRunnableUpdateImage);
                 mHandlerUpdateOpacity.removeCallbacks(mUpdateBitmapOpacity);
             }
         }
@@ -111,14 +110,18 @@ public class BestMemoriesWallpaperService extends WallpaperService {
                     mImagePosition = 0;
                 }
 
-                if (isVisible()) {
-                    Bitmap backgroundBitmap = mArrayBitmaps.get(mImagePosition);
+                Bitmap backgroundBitmap = mArrayBitmaps.get(mImagePosition);
 
-                    mUpdateBitmapOpacity = new RunnableUpdateOpacity(backgroundBitmap);
+//                    mRunnableDrawBitmap.setShowBackgroundBitmap(false);
+                mRunnableDrawBitmap.resetStates();
+                mRunnableDrawBitmap.updateBitmap(backgroundBitmap);
+                mRunnableDrawBitmap.calculateScaledBitmapSize();
+                mRunnableDrawBitmap.calculateRectanglePoints();
 
-                    mHandlerUpdateOpacity.post(mUpdateBitmapOpacity);
-                    mHandlerUpdateBitmap.postDelayed(mRunnableUpdateImage, TIME_UPDATE_BITMAP - UPDATE_OPACITY_SECOND);
-                }
+//                    mUpdateBitmapOpacity = new RunnableUpdateOpacity(backgroundBitmap);
+//
+//                    mHandlerUpdateOpacity.post(mUpdateBitmapOpacity);
+                mHandlerUpdateBitmap.postDelayed(mRunnableUpdateImage, TIME_UPDATE_BITMAP - UPDATE_OPACITY_SECOND);
             }
         };
 
@@ -143,11 +146,11 @@ public class BestMemoriesWallpaperService extends WallpaperService {
                     mRunnableDrawBitmap.updateBackgroundBitmap(bitmap);
                     mHandlerUpdateOpacity.postDelayed(mUpdateBitmapOpacity, (TIME_UPDATE_BITMAP - UPDATE_OPACITY_SECOND) / 50);
                 } else {
-                    mRunnableDrawBitmap.setShowBackgroundBitmap(false);
                     mHandlerUpdateOpacity.removeCallbacks(mUpdateBitmapOpacity);
-                    mRunnableDrawBitmap.updateBitmap(sourceBitmap);
 
-                    mRunnableDrawBitmap.calculateScaledBitmapSize(sourceBitmap);
+                    mRunnableDrawBitmap.setShowBackgroundBitmap(false);
+                    mRunnableDrawBitmap.updateBitmap(sourceBitmap);
+                    mRunnableDrawBitmap.calculateScaledBitmapSize();
                     mRunnableDrawBitmap.calculateRectanglePoints();
                 }
             }

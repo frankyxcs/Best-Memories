@@ -1,7 +1,6 @@
 package com.best.memories.background;
 
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Matrix;
 import android.graphics.Paint;
@@ -18,12 +17,13 @@ import static android.graphics.PorterDuff.Mode.CLEAR;
 
 /**
  * Created by Terry on 10/4/2016.
+ * Drawing image on canvas
  */
 
 public class RunnableDrawImage implements Runnable {
     private boolean mMoveLeft;
     private boolean mScaleImageOut;
-    private boolean mLastZoomIn;
+    private boolean mZoomIn;
     private boolean mMoveRight = true;
     private boolean mShowBackgroundBitmap;
 
@@ -32,14 +32,14 @@ public class RunnableDrawImage implements Runnable {
     private int mScreenHeight;
     private int mScreenWidth;
 
-    private float mBaseLeftSide;
-    private float mBaseTopSide;
-    private float mBaseRightSide;
-    private float mBaseBottom;
-    private float mLeftSide;
-    private float mTopSide;
-    private float mRightSide;
-    private float mBottomSide;
+    private float mBaseLeftForwardSide;
+    private float mBaseTopForwardSide;
+    private float mBaseRightForwardSide;
+    private float mBaseBottomForwardSide;
+    private float mLeftForwardSide;
+    private float mTopForwardSide;
+    private float mRightForwardSide;
+    private float mBottomForwardSide;
 
     private final SurfaceHolder mSurfaceHolder;
     private Bitmap mDrawImage;
@@ -71,9 +71,13 @@ public class RunnableDrawImage implements Runnable {
 
             canvas.drawBitmap(mDrawImage, matrix, paint);
 
-            if (mShowBackgroundBitmap) {
-                canvas.drawBitmap(mBackgroundBitmap, 100f, 100f, null);
-            }
+//            if (mShowBackgroundBitmap) {
+//                float left = 0;
+//                float top = 0;
+//                RectF rectScreen = new RectF(left, top, mScreenWidth, mScreenHeight);
+//
+//                canvas.drawBitmap(mBackgroundBitmap, null, rectScreen, null);
+//            }
 
             if (mListener != null) {
                 mListener.drawBitmap();
@@ -95,110 +99,72 @@ public class RunnableDrawImage implements Runnable {
         int outWidth = mDrawImage.getWidth();
         int outHeight = mDrawImage.getHeight();
 
-        if (mScreenWidth > mDrawImage.getWidth()) {
-            outWidth = mScreenWidth * 2;
-            outHeight = mScreenHeight * 2;
-        } else if (mScreenHeight > mDrawImage.getHeight()) {
-            outHeight = mScreenHeight * 2;
+        if (mScreenWidth > outWidth || mScreenHeight > outHeight) {
+            outWidth = mDrawImage.getWidth() * 3;
+            outHeight = mDrawImage.getHeight() * 3;
+
+            mDrawImage = Bitmap.createScaledBitmap(mDrawImage, outWidth, outHeight, true);
         }
 
-        mDrawImage = Bitmap.createScaledBitmap(mDrawImage, outWidth, outHeight, true);
-
-        mCenterBitmapX = mDrawImage.getWidth() / 2;
-        mCenterBitmapY = mDrawImage.getHeight() / 2;
+        mCenterBitmapX = outWidth / 2;
+        mCenterBitmapY = outHeight / 2;
     }
 
     public void calculateRectanglePoints() {
-        mLeftSide = Math.abs(mCenterBitmapX - mScreenWidth / 2);
-        mTopSide = Math.abs(mCenterBitmapY - mScreenHeight / 2);
-        mRightSide = Math.abs(mCenterBitmapX + mScreenWidth / 2);
-        mBottomSide = Math.abs(mCenterBitmapY + mScreenHeight / 2);
+        mLeftForwardSide = Math.abs(mCenterBitmapX - mScreenWidth / 2);
+        mTopForwardSide = Math.abs(mCenterBitmapY - mScreenHeight / 2);
+        mRightForwardSide = Math.abs(mCenterBitmapX + mScreenWidth / 2);
+        mBottomForwardSide = Math.abs(mCenterBitmapY + mScreenHeight / 2);
 
-        mBaseLeftSide = mLeftSide;
-        mBaseTopSide = mTopSide;
-        mBaseRightSide = mRightSide;
-        mBaseBottom = mBottomSide;
+        mBaseLeftForwardSide = mLeftForwardSide;
+        mBaseTopForwardSide = mTopForwardSide;
+        mBaseRightForwardSide = mRightForwardSide;
+        mBaseBottomForwardSide = mBottomForwardSide;
     }
 
     private void calculateOffsetDirection() {
         float offset = 2;
-        float borderMargin = 0;
 
-        if (!mScaleImageOut && mRightSide <= mDrawImage.getWidth() && mMoveRight) {
-            moveImageRight(offset);
-        } else if (!mScaleImageOut && mLeftSide > borderMargin && mMoveLeft) {
-            moveImageLeft(offset);
-        } else if (mLeftSide <= borderMargin) {
-            mMoveRight = true;
-        } else if (mRightSide >= mDrawImage.getWidth()) {
-            mMoveLeft = true;
-        }
-
-        if (mLastZoomIn) {
+        if (mZoomIn) {
             zoomImageIn(offset);
-        } else if (mScaleImageOut) {
+        } else {
             zoomImageOut(offset);
         }
     }
 
-    private void moveImageRight(float offset) {
-        mMoveLeft = false;
-
-        if (mLeftSide < mBaseLeftSide) {
-            mLeftSide = mLeftSide + offset;
-
-            if (mLeftSide == mBaseLeftSide) {
-                mScaleImageOut = true;
-            }
-
-        } else {
-            mRightSide = mRightSide + offset;
-        }
-    }
-
-    private void moveImageLeft(float offset) {
-        mMoveRight = false;
-
-        if (mRightSide > mBaseRightSide) {
-            mRightSide = mRightSide - offset;
-        } else {
-            mLeftSide = mLeftSide - offset;
-        }
-    }
-
     private void zoomImageOut(float offset) {
-        mTopSide = mTopSide - offset;
-        mBottomSide = mBottomSide + offset;
-
-        if (mTopSide < mBaseTopSide) {
-            mTopSide = mTopSide - offset;
+        if (mTopForwardSide <= mBaseTopForwardSide) {
+            mTopForwardSide = mTopForwardSide - offset;
         }
-        if (mBottomSide > mBaseBottom) {
-            mBottomSide = mBottomSide + offset;
+        if (mBottomForwardSide >= mBaseBottomForwardSide) {
+            mBottomForwardSide = mBottomForwardSide + offset;
         }
 
-        if (mTopSide >= 0) {
-            mScaleImageOut = false;
-            mLastZoomIn = true;
+        if (mTopForwardSide == 0) {
+            mZoomIn = true;
         }
     }
 
     private void zoomImageIn(float offset) {
-        if (mTopSide < mBaseTopSide) {
-            mTopSide = mTopSide + offset;
+        if (mTopForwardSide <= mBaseTopForwardSide) {
+            mTopForwardSide = mTopForwardSide + offset;
         }
-        if (mBottomSide > mBaseBottom) {
-            mBottomSide = mBottomSide - offset;
+        if (mBottomForwardSide >= mBaseBottomForwardSide) {
+            mBottomForwardSide = mBottomForwardSide - offset;
         }
 
-        if (mTopSide == mBaseTopSide) {
-            mLastZoomIn = false;
+        if (mTopForwardSide == mBaseTopForwardSide) {
+            mZoomIn = false;
         }
+    }
+
+    public void resetStates() {
+        mZoomIn = false;
     }
 
     @NonNull
     private Matrix getMatrix() {
-        RectF rectImage = new RectF(mLeftSide, mTopSide, mRightSide, mBottomSide);
+        RectF rectImage = new RectF(mLeftForwardSide, mTopForwardSide, mRightForwardSide, mBottomForwardSide);
         float left = 0;
         float top = 0;
         RectF rectScreen = new RectF(left, top, mScreenWidth, mScreenHeight);
