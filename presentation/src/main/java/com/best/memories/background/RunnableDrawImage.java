@@ -67,15 +67,17 @@ public class RunnableDrawImage implements Runnable {
 
             if (mShowBackgroundBitmap) {
                 paint.setAlpha(MAX_BITMAP_OPACITY - mForwardBitmapOpacity);
+            } else {
+                paint.setAlpha(MAX_BITMAP_OPACITY);
             }
 
             canvas.drawBitmap(mDrawImage, matrix, paint);
 
-            if (mShowBackgroundBitmap && mBackgroundBitmap != null) {
+            if (mShowBackgroundBitmap) {
                 float left = 0;
                 float top = 0;
 
-                RectF rectImage = new RectF(0, mBackgroundBitmap.getHeight(), 0, mBackgroundBitmap.getHeight());
+                RectF rectImage = new RectF(0, 0, mBackgroundBitmap.getWidth(), mBackgroundBitmap.getHeight());
                 RectF rectScreen = new RectF(left, top, mScreenWidth, mScreenHeight);
 
                 Matrix matrixBackground = new Matrix();

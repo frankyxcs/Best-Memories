@@ -127,6 +127,7 @@ public class BestMemoriesWallpaperService extends WallpaperService {
         private class RunnableUpdateOpacity implements Runnable {
             private int opacity;
             private Bitmap sourceBitmap;
+            private Bitmap scaledBitmap;
             private static final int OPACITY_LIMIT = 250;
 
             RunnableUpdateOpacity(Bitmap bitmap) {
@@ -139,23 +140,22 @@ public class BestMemoriesWallpaperService extends WallpaperService {
                 if (opacity < OPACITY_LIMIT) {
                     opacity = opacity + opacityOffset;
 
-                    Bitmap bitmap = makeBitmapTransparent(sourceBitmap, opacity);
+                    scaledBitmap = makeBitmapTransparent(sourceBitmap, opacity);
 
-                    mRunnableDrawBitmap.updateBackgroundBitmap(bitmap);
+                    mRunnableDrawBitmap.updateBackgroundBitmap(scaledBitmap);
                     mRunnableDrawBitmap.setShowBackgroundBitmap(true);
                     mRunnableDrawBitmap.setForwardBitmapOpacity(opacity);
 
-                    mHandlerUpdateOpacity.postDelayed(mUpdateBitmapOpacity, (TIME_UPDATE_BITMAP - UPDATE_OPACITY_SECOND) / 50);
+                    mHandlerUpdateOpacity.postDelayed(mUpdateBitmapOpacity, (TIME_UPDATE_BITMAP - UPDATE_OPACITY_SECOND) / 250);
                 } else {
-                    //mHandlerUpdateOpacity.removeCallbacks(mUpdateBitmapOpacity);
+                    mHandlerUpdateOpacity.removeCallbacks(mUpdateBitmapOpacity);
 
                     mRunnableDrawBitmap.resetStates();
                     mRunnableDrawBitmap.setShowBackgroundBitmap(false);
 
-                    Bitmap bitmap = mRunnableDrawBitmap.calculateScaledBitmapSize(sourceBitmap);
+                    Bitmap bitmap = mRunnableDrawBitmap.calculateScaledBitmapSize(scaledBitmap);
                     mRunnableDrawBitmap.calculateRectanglePoints(bitmap);
                     mRunnableDrawBitmap.updateBitmap(bitmap);
-
                 }
             }
 
