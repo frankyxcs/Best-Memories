@@ -21,20 +21,14 @@ import static android.graphics.PorterDuff.Mode.CLEAR;
  */
 
 public class RunnableDrawImage implements Runnable {
-    private boolean mMoveLeft;
-    private boolean mScaleImageOut;
+    private static final int MAX_BITMAP_OPACITY = 250;
     private boolean mZoomIn;
-    private boolean mMoveRight = true;
     private boolean mShowBackgroundBitmap;
 
-    private int mCenterBitmapX;
-    private int mCenterBitmapY;
     private int mScreenHeight;
     private int mScreenWidth;
 
-    private float mBaseLeftForwardSide;
     private float mBaseTopForwardSide;
-    private float mBaseRightForwardSide;
     private float mBaseBottomForwardSide;
     private float mLeftForwardSide;
     private float mTopForwardSide;
@@ -46,6 +40,8 @@ public class RunnableDrawImage implements Runnable {
     private Bitmap mBackgroundBitmap;
 
     private IDrawBitmap mListener;
+    private int mForwardBitmapOpacity;
+
 
     public RunnableDrawImage(SurfaceHolder surfaceHolder, int width, int height) {
         mSurfaceHolder = surfaceHolder;
@@ -69,15 +65,24 @@ public class RunnableDrawImage implements Runnable {
             paint.setFilterBitmap(true);
             paint.setDither(true);
 
+            if (mShowBackgroundBitmap) {
+                paint.setAlpha(MAX_BITMAP_OPACITY - mForwardBitmapOpacity);
+            }
+
             canvas.drawBitmap(mDrawImage, matrix, paint);
 
-//            if (mShowBackgroundBitmap) {
-//                float left = 0;
-//                float top = 0;
-//                RectF rectScreen = new RectF(left, top, mScreenWidth, mScreenHeight);
-//
-//                canvas.drawBitmap(mBackgroundBitmap, null, rectScreen, null);
-//            }
+            if (mShowBackgroundBitmap && mBackgroundBitmap != null) {
+                float left = 0;
+                float top = 0;
+
+                RectF rectImage = new RectF(0, mBackgroundBitmap.getHeight(), 0, mBackgroundBitmap.getHeight());
+                RectF rectScreen = new RectF(left, top, mScreenWidth, mScreenHeight);
+
+                Matrix matrixBackground = new Matrix();
+                matrix.setRectToRect(rectImage, rectScreen, CENTER);
+
+                canvas.drawBitmap(mBackgroundBitmap, matrixBackground, null);
+            }
 
             if (mListener != null) {
                 mListener.drawBitmap();
@@ -95,30 +100,46 @@ public class RunnableDrawImage implements Runnable {
         }
     }
 
-    public void calculateScaledBitmapSize() {
-        int outWidth = mDrawImage.getWidth();
-        int outHeight = mDrawImage.getHeight();
+    public Bitmap calculateScaledBitmapSize(Bitmap bitmap) {
+        int outWidth = bitmap.getWidth();
+        int outHeight = bitmap.getHeight();
 
         if (mScreenWidth > outWidth || mScreenHeight > outHeight) {
-            outWidth = mDrawImage.getWidth() * 3;
-            outHeight = mDrawImage.getHeight() * 3;
+            outWidth = bitmap.getWidth() * 3;
+            outHeight = bitmap.getHeight() * 3;
 
-            mDrawImage = Bitmap.createScaledBitmap(mDrawImage, outWidth, outHeight, true);
+            bitmap = Bitmap.createScaledBitmap(bitmap, outWidth, outHeight, true);
         }
 
-        mCenterBitmapX = outWidth / 2;
-        mCenterBitmapY = outHeight / 2;
+        return bitmap;
     }
 
-    public void calculateRectanglePoints() {
-        mLeftForwardSide = Math.abs(mCenterBitmapX - mScreenWidth / 2);
-        mTopForwardSide = Math.abs(mCenterBitmapY - mScreenHeight / 2);
-        mRightForwardSide = Math.abs(mCenterBitmapX + mScreenWidth / 2);
-        mBottomForwardSide = Math.abs(mCenterBitmapY + mScreenHeight / 2);
+    public int[] getWidthHeight(Bitmap bitmap) {
+        int[] arrayParams = new int[2];
+        int outWidth = bitmap.getWidth();
+        int outHeight = bitmap.getHeight();
 
-        mBaseLeftForwardSide = mLeftForwardSide;
+        if (mScreenWidth > outWidth || mScreenHeight > outHeight) {
+            outWidth = bitmap.getWidth() * 3;
+            outHeight = bitmap.getHeight() * 3;
+
+        }
+        arrayParams[0] = outWidth;
+        arrayParams[1] = outHeight;
+
+        return arrayParams;
+    }
+
+    public void calculateRectanglePoints(Bitmap bitmap) {
+        int centerBitmapX = bitmap.getWidth() / 2;
+        int centerBitmapY = bitmap.getHeight() / 2;
+
+        mLeftForwardSide = Math.abs(centerBitmapX - mScreenWidth / 2);
+        mTopForwardSide = Math.abs(centerBitmapY - mScreenHeight / 2);
+        mRightForwardSide = Math.abs(centerBitmapX + mScreenWidth / 2);
+        mBottomForwardSide = Math.abs(centerBitmapY + mScreenHeight / 2);
+
         mBaseTopForwardSide = mTopForwardSide;
-        mBaseRightForwardSide = mRightForwardSide;
         mBaseBottomForwardSide = mBottomForwardSide;
     }
 
@@ -188,6 +209,10 @@ public class RunnableDrawImage implements Runnable {
 
     public void setListener(IDrawBitmap listener) {
         mListener = listener;
+    }
+
+    public void setForwardBitmapOpacity(int forwardBitmapOpacity) {
+        mForwardBitmapOpacity = forwardBitmapOpacity;
     }
 
     public interface IDrawBitmap {
