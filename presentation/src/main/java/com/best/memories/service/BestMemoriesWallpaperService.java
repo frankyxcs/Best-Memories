@@ -27,7 +27,7 @@ public class BestMemoriesWallpaperService extends WallpaperService {
     private class BestMemoriesWallpaperEngine extends Engine implements IDrawBitmap {
         static final int DELAY_MILLIS = 5;
         static final int UPDATE_OPACITY_SECOND = 2 * 1000;
-        private static final long TIME_UPDATE_BITMAP = 20 * 1000;
+        private static final long TIME_UPDATE_BITMAP = 6 * 1000;
 
         private final Handler mHandlerDrawBitmap = new Handler();
         private final Handler mHandlerUpdateBitmap = new Handler();

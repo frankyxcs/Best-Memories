@@ -10,6 +10,7 @@ import android.util.Log;
 import android.view.SurfaceHolder;
 
 import static android.graphics.Color.TRANSPARENT;
+import static android.graphics.Color.WHITE;
 import static android.graphics.Matrix.ScaleToFit.CENTER;
 import static android.graphics.PorterDuff.Mode.CLEAR;
 import static com.best.memories.application.BestMemoriesApplication.TAG;
@@ -63,9 +64,11 @@ public class RunnableDrawImage implements Runnable {
             paint.setAntiAlias(true);
             paint.setFilterBitmap(true);
             paint.setDither(true);
+            paint.setColor(WHITE);
 
             if (mShowBackgroundBitmap) {
                 paint.setAlpha(MAX_BITMAP_OPACITY - mForwardBitmapOpacity);
+
             } else {
                 paint.setAlpha(MAX_BITMAP_OPACITY);
             }
@@ -116,10 +119,14 @@ public class RunnableDrawImage implements Runnable {
         int outHeight = bitmap.getHeight();
 
         if (mScreenWidth > outWidth || mScreenHeight > outHeight) {
-            outWidth = bitmap.getWidth() * 3;
-            outHeight = bitmap.getHeight() * 3;
+            int proportionValueWidth = 60;
+            int proportionValueHeight = 60;
+            int proportionValueTwo = 100;
 
-            bitmap = Bitmap.createScaledBitmap(bitmap, outWidth, outHeight, true);
+            outWidth = mScreenWidth + (mScreenWidth * proportionValueWidth) / proportionValueTwo;
+            outHeight = mScreenHeight + (mScreenHeight * proportionValueHeight) / proportionValueTwo;
+
+            bitmap = Bitmap.createScaledBitmap(bitmap, outWidth, outHeight, false);
         }
 
         return bitmap;
