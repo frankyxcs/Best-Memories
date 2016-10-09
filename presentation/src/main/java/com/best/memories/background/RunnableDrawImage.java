@@ -9,11 +9,10 @@ import android.support.annotation.NonNull;
 import android.util.Log;
 import android.view.SurfaceHolder;
 
-import com.best.memories.application.BestMemoriesApplication;
-
 import static android.graphics.Color.TRANSPARENT;
 import static android.graphics.Matrix.ScaleToFit.CENTER;
 import static android.graphics.PorterDuff.Mode.CLEAR;
+import static com.best.memories.application.BestMemoriesApplication.TAG;
 
 /**
  * Created by Terry on 10/4/2016.
@@ -77,13 +76,23 @@ public class RunnableDrawImage implements Runnable {
                 float left = 0;
                 float top = 0;
 
-                RectF rectImage = new RectF(0, 0, mBackgroundBitmap.getWidth(), mBackgroundBitmap.getHeight());
+                int centerBitmapX = mBackgroundBitmap.getWidth() / 2;
+                int centerBitmapY = mBackgroundBitmap.getHeight() / 2;
+
+                int leftForwardSide = Math.abs(centerBitmapX - mScreenWidth / 2);
+                int topForwardSide = Math.abs(centerBitmapY - mScreenHeight / 2);
+                int rightForwardSide = Math.abs(centerBitmapX + mScreenWidth / 2);
+                int bottomForwardSide = Math.abs(centerBitmapY + mScreenHeight / 2);
+
+                RectF rectImage = new RectF(leftForwardSide, topForwardSide, rightForwardSide, bottomForwardSide);
                 RectF rectScreen = new RectF(left, top, mScreenWidth, mScreenHeight);
 
                 Matrix matrixBackground = new Matrix();
-                matrix.setRectToRect(rectImage, rectScreen, CENTER);
+                matrixBackground.setRectToRect(rectImage, rectScreen, CENTER);
 
-                canvas.drawBitmap(mBackgroundBitmap, matrixBackground, null);
+                paint.setAlpha(mForwardBitmapOpacity);
+
+                canvas.drawBitmap(mBackgroundBitmap, matrixBackground, paint);
             }
 
             if (mListener != null) {
@@ -97,7 +106,7 @@ public class RunnableDrawImage implements Runnable {
                 }
 
             } catch (IllegalArgumentException e) {
-                Log.e(BestMemoriesApplication.TAG, e.toString());
+                Log.e(TAG, e.toString());
             }
         }
     }
@@ -114,22 +123,6 @@ public class RunnableDrawImage implements Runnable {
         }
 
         return bitmap;
-    }
-
-    public int[] getWidthHeight(Bitmap bitmap) {
-        int[] arrayParams = new int[2];
-        int outWidth = bitmap.getWidth();
-        int outHeight = bitmap.getHeight();
-
-        if (mScreenWidth > outWidth || mScreenHeight > outHeight) {
-            outWidth = bitmap.getWidth() * 3;
-            outHeight = bitmap.getHeight() * 3;
-
-        }
-        arrayParams[0] = outWidth;
-        arrayParams[1] = outHeight;
-
-        return arrayParams;
     }
 
     public void calculateRectanglePoints(Bitmap bitmap) {
@@ -201,8 +194,8 @@ public class RunnableDrawImage implements Runnable {
         mDrawImage = bitmap;
     }
 
-    public void setShowBackgroundBitmap(boolean mShowBackgroundBitmap) {
-        this.mShowBackgroundBitmap = mShowBackgroundBitmap;
+    public void setShowBackgroundBitmap(boolean showBackgroundBitmap) {
+        mShowBackgroundBitmap = showBackgroundBitmap;
     }
 
     public void updateBackgroundBitmap(Bitmap bitmap) {
@@ -220,5 +213,6 @@ public class RunnableDrawImage implements Runnable {
     public interface IDrawBitmap {
         void drawBitmap();
     }
+
 }
 

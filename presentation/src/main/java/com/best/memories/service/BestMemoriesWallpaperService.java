@@ -3,8 +3,6 @@ package com.best.memories.service;
 import android.content.res.TypedArray;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.Canvas;
-import android.graphics.Paint;
 import android.os.Handler;
 import android.service.wallpaper.WallpaperService;
 import android.view.SurfaceHolder;
@@ -15,8 +13,6 @@ import com.best.memories.background.RunnableDrawImage.IDrawBitmap;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import static android.graphics.Bitmap.Config.ARGB_8888;
 
 /**
  * Service for operate liveWallpaper
@@ -31,7 +27,7 @@ public class BestMemoriesWallpaperService extends WallpaperService {
     private class BestMemoriesWallpaperEngine extends Engine implements IDrawBitmap {
         static final int DELAY_MILLIS = 5;
         static final int UPDATE_OPACITY_SECOND = 2 * 1000;
-        private static final long TIME_UPDATE_BITMAP = 10 * 1000;
+        private static final long TIME_UPDATE_BITMAP = 20 * 1000;
 
         private final Handler mHandlerDrawBitmap = new Handler();
         private final Handler mHandlerUpdateBitmap = new Handler();
@@ -43,12 +39,14 @@ public class BestMemoriesWallpaperService extends WallpaperService {
 
         BestMemoriesWallpaperEngine() {
             TypedArray typedArray = getResources().obtainTypedArray(R.array.image);
+            int defaultValue = -1;
 
             for (int i = 0; i < typedArray.length(); i++) {
-                int resId = typedArray.getResourceId(i, -1);
+                int resId = typedArray.getResourceId(i, defaultValue);
                 Bitmap bitmap = BitmapFactory.decodeResource(getResources(), resId);
                 mArrayBitmaps.add(bitmap);
             }
+
             typedArray.recycle();
         }
 
@@ -58,6 +56,15 @@ public class BestMemoriesWallpaperService extends WallpaperService {
 
             mRunnableDrawBitmap = new RunnableDrawImage(getSurfaceHolder(), width, height);
             mRunnableDrawBitmap.setListener(this);
+
+            int defPosition = 0;
+            Bitmap bitmap = mArrayBitmaps.get(defPosition);
+
+            mRunnableDrawBitmap.resetStates();
+
+            Bitmap scaledBitmap = mRunnableDrawBitmap.calculateScaledBitmapSize(bitmap);
+            mRunnableDrawBitmap.calculateRectanglePoints(scaledBitmap);
+            mRunnableDrawBitmap.updateBitmap(scaledBitmap);
         }
 
         @Override
@@ -65,15 +72,7 @@ public class BestMemoriesWallpaperService extends WallpaperService {
             super.onVisibilityChanged(visible);
 
             if (visible) {
-                Bitmap bitmap = mArrayBitmaps.get(0);
-
-                mRunnableDrawBitmap.resetStates();
-
-                Bitmap scaledBitmap = mRunnableDrawBitmap.calculateScaledBitmapSize(bitmap);
-                mRunnableDrawBitmap.calculateRectanglePoints(scaledBitmap);
-                mRunnableDrawBitmap.updateBitmap(scaledBitmap);
                 mHandlerDrawBitmap.post(mRunnableDrawBitmap);
-
                 mHandlerUpdateBitmap.postDelayed(mRunnableUpdateImage, TIME_UPDATE_BITMAP - UPDATE_OPACITY_SECOND);
             } else {
                 mHandlerDrawBitmap.removeCallbacks(mRunnableDrawBitmap);
@@ -99,24 +98,18 @@ public class BestMemoriesWallpaperService extends WallpaperService {
         }
 
         private Runnable mRunnableUpdateImage = new Runnable() {
-            private int mImagePosition = 1;
+            private int imagePosition;
 
             @Override
             public void run() {
 
-                if (mImagePosition < mArrayBitmaps.size() - 1) {
-                    mImagePosition++;
+                if (imagePosition < mArrayBitmaps.size() - 1) {
+                    imagePosition++;
                 } else {
-                    mImagePosition = 0;
+                    imagePosition = 0;
                 }
 
-                Bitmap bitmap = mArrayBitmaps.get(mImagePosition);
-//                mRunnableDrawBitmap.resetStates();
-//                mRunnableDrawBitmap.setShowBackgroundBitmap(false);
-//                Bitmap scaledBitmap = mRunnableDrawBitmap.calculateScaledBitmapSize(bitmap);
-//                mRunnableDrawBitmap.calculateRectanglePoints(scaledBitmap);
-//                mRunnableDrawBitmap.updateBitmap(scaledBitmap);
-
+                Bitmap bitmap = mArrayBitmaps.get(imagePosition);
 
                 mUpdateBitmapOpacity = new RunnableUpdateOpacity(bitmap);
                 mHandlerUpdateOpacity.post(mUpdateBitmapOpacity);
@@ -136,44 +129,26 @@ public class BestMemoriesWallpaperService extends WallpaperService {
 
             @Override
             public void run() {
-                int opacityOffset = 1;
+                int opacityOffset = 15;
                 if (opacity < OPACITY_LIMIT) {
                     opacity = opacity + opacityOffset;
 
-                    scaledBitmap = makeBitmapTransparent(sourceBitmap, opacity);
+                    scaledBitmap = mRunnableDrawBitmap.calculateScaledBitmapSize(sourceBitmap);
 
                     mRunnableDrawBitmap.updateBackgroundBitmap(scaledBitmap);
                     mRunnableDrawBitmap.setShowBackgroundBitmap(true);
                     mRunnableDrawBitmap.setForwardBitmapOpacity(opacity);
 
-                    mHandlerUpdateOpacity.postDelayed(mUpdateBitmapOpacity, (TIME_UPDATE_BITMAP - UPDATE_OPACITY_SECOND) / 250);
+                    mHandlerUpdateOpacity.postDelayed(mUpdateBitmapOpacity, (TIME_UPDATE_BITMAP - UPDATE_OPACITY_SECOND) / OPACITY_LIMIT);
                 } else {
                     mHandlerUpdateOpacity.removeCallbacks(mUpdateBitmapOpacity);
 
                     mRunnableDrawBitmap.resetStates();
                     mRunnableDrawBitmap.setShowBackgroundBitmap(false);
 
-                    Bitmap bitmap = mRunnableDrawBitmap.calculateScaledBitmapSize(scaledBitmap);
-                    mRunnableDrawBitmap.calculateRectanglePoints(bitmap);
-                    mRunnableDrawBitmap.updateBitmap(bitmap);
+                    mRunnableDrawBitmap.calculateRectanglePoints(scaledBitmap);
+                    mRunnableDrawBitmap.updateBitmap(scaledBitmap);
                 }
-            }
-
-            private Bitmap makeBitmapTransparent(Bitmap src, int value) {
-                int[] bitmapParams = mRunnableDrawBitmap.getWidthHeight(src);
-
-                int width = bitmapParams[0];
-                int height = bitmapParams[1];
-
-                Bitmap transBitmap = Bitmap.createBitmap(width, height, ARGB_8888);
-                Canvas canvas = new Canvas(transBitmap);
-                canvas.drawARGB(0, 0, 0, 0);
-
-                final Paint paint = new Paint();
-                paint.setAlpha(value);
-                canvas.drawBitmap(src, 0, 0, paint);
-
-                return transBitmap;
             }
         }
 
