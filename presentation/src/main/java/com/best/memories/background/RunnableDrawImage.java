@@ -43,10 +43,8 @@ public class RunnableDrawImage implements Runnable {
     private int mForwardBitmapOpacity;
 
 
-    public RunnableDrawImage(SurfaceHolder surfaceHolder, int width, int height) {
+    public RunnableDrawImage(SurfaceHolder surfaceHolder) {
         mSurfaceHolder = surfaceHolder;
-        mScreenWidth = width;
-        mScreenHeight = height;
     }
 
     @Override
@@ -119,17 +117,19 @@ public class RunnableDrawImage implements Runnable {
         int outHeight = bitmap.getHeight();
 
         if (mScreenWidth > outWidth || mScreenHeight > outHeight) {
-            int proportionValueWidth = 60;
-            int proportionValueHeight = 60;
+            int proportionValueWidth = 30;
+            int proportionValueHeight = 30;
             int proportionValueTwo = 100;
 
-            outWidth = mScreenWidth + (mScreenWidth * proportionValueWidth) / proportionValueTwo;
-            outHeight = mScreenHeight + (mScreenHeight * proportionValueHeight) / proportionValueTwo;
+            outWidth = outWidth + (outWidth * proportionValueWidth) / proportionValueTwo;
+            outHeight = outHeight + (outHeight * proportionValueHeight) / proportionValueTwo;
 
-            bitmap = Bitmap.createScaledBitmap(bitmap, outWidth, outHeight, false);
+            bitmap = Bitmap.createScaledBitmap(bitmap, outWidth, outHeight, true);
+
+            return calculateScaledBitmapSize(bitmap);
+        } else {
+            return bitmap;
         }
-
-        return bitmap;
     }
 
     public void calculateRectanglePoints(Bitmap bitmap) {
@@ -215,6 +215,11 @@ public class RunnableDrawImage implements Runnable {
 
     public void setForwardBitmapOpacity(int forwardBitmapOpacity) {
         mForwardBitmapOpacity = forwardBitmapOpacity;
+    }
+
+    public void updateScreenResolution(int width, int height) {
+        mScreenWidth = width;
+        mScreenHeight = height;
     }
 
     public interface IDrawBitmap {

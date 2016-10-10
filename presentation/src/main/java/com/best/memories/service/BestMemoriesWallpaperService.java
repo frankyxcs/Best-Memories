@@ -8,16 +8,32 @@ import android.service.wallpaper.WallpaperService;
 import android.view.SurfaceHolder;
 
 import com.best.memories.R;
+import com.best.memories.application.BestMemoriesApplication;
 import com.best.memories.background.RunnableDrawImage;
 import com.best.memories.background.RunnableDrawImage.IDrawBitmap;
+import com.bestmemories.GlobalSharePreferences;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import javax.inject.Inject;
+
+import static com.bestmemories.GlobalSharePreferences.BITMAP_POSITION;
+import static com.bestmemories.GlobalSharePreferences.SHARE_PREFERENCES_TYPE.INTEGER;
 
 /**
  * Service for operate liveWallpaper
  */
 public class BestMemoriesWallpaperService extends WallpaperService {
+    public static final int DEF_VALUE = 0;
+    @Inject GlobalSharePreferences mPreferences;
+
+    @Override
+    public void onCreate() {
+        super.onCreate();
+        BestMemoriesApplication application = (BestMemoriesApplication) getApplication();
+        application.getBestMemoriesComponent().inject(this);
+    }
 
     @Override
     public Engine onCreateEngine() {
@@ -25,9 +41,9 @@ public class BestMemoriesWallpaperService extends WallpaperService {
     }
 
     private class BestMemoriesWallpaperEngine extends Engine implements IDrawBitmap {
-        static final int DELAY_MILLIS = 5;
+        static final int DELAY_MILLIS = 1;
         static final int UPDATE_OPACITY_SECOND = 2 * 1000;
-        private static final long TIME_UPDATE_BITMAP = 6 * 1000;
+        private static final long TIME_UPDATE_BITMAP = 10 * 1000;
 
         private final Handler mHandlerDrawBitmap = new Handler();
         private final Handler mHandlerUpdateBitmap = new Handler();
@@ -53,15 +69,15 @@ public class BestMemoriesWallpaperService extends WallpaperService {
         @Override
         public void onSurfaceChanged(SurfaceHolder holder, int format, int width, int height) {
             super.onSurfaceChanged(holder, format, width, height);
+            int position = mPreferences.getSharedPreferences().getInt(BITMAP_POSITION, DEF_VALUE);
+            Bitmap bitmap = mArrayBitmaps.get(position);
 
-            mRunnableDrawBitmap = new RunnableDrawImage(getSurfaceHolder(), width, height);
+            mRunnableDrawBitmap = new RunnableDrawImage(getSurfaceHolder());
             mRunnableDrawBitmap.setListener(this);
-
-            int defPosition = 0;
-            Bitmap bitmap = mArrayBitmaps.get(defPosition);
 
             mRunnableDrawBitmap.resetStates();
 
+            mRunnableDrawBitmap.updateScreenResolution(width, height);
             Bitmap scaledBitmap = mRunnableDrawBitmap.calculateScaledBitmapSize(bitmap);
             mRunnableDrawBitmap.calculateRectanglePoints(scaledBitmap);
             mRunnableDrawBitmap.updateBitmap(scaledBitmap);
@@ -81,6 +97,7 @@ public class BestMemoriesWallpaperService extends WallpaperService {
             }
         }
 
+
         @Override
         public void onSurfaceDestroyed(SurfaceHolder holder) {
             super.onSurfaceDestroyed(holder);
@@ -98,18 +115,20 @@ public class BestMemoriesWallpaperService extends WallpaperService {
         }
 
         private Runnable mRunnableUpdateImage = new Runnable() {
-            private int imagePosition;
-
             @Override
             public void run() {
+                int position = mPreferences.getSharedPreferences().getInt(BITMAP_POSITION, DEF_VALUE);
 
-                if (imagePosition < mArrayBitmaps.size() - 1) {
-                    imagePosition++;
+                if (position < mArrayBitmaps.size() - 1) {
+                    position++;
                 } else {
-                    imagePosition = 0;
+                    position = 0;
                 }
 
-                Bitmap bitmap = mArrayBitmaps.get(imagePosition);
+                mPreferences.setDataToSharePreferences(BITMAP_POSITION, position, INTEGER);
+
+                Bitmap bitmap = mArrayBitmaps.get(position);
+                bitmap = mRunnableDrawBitmap.calculateScaledBitmapSize(bitmap);
 
                 mUpdateBitmapOpacity = new RunnableUpdateOpacity(bitmap);
                 mHandlerUpdateOpacity.post(mUpdateBitmapOpacity);
@@ -120,22 +139,20 @@ public class BestMemoriesWallpaperService extends WallpaperService {
         private class RunnableUpdateOpacity implements Runnable {
             private int opacity;
             private Bitmap sourceBitmap;
-            private Bitmap scaledBitmap;
+
             private static final int OPACITY_LIMIT = 250;
 
             RunnableUpdateOpacity(Bitmap bitmap) {
-                this.sourceBitmap = bitmap;
+                sourceBitmap = bitmap;
             }
 
             @Override
             public void run() {
-                int opacityOffset = 15;
+                int opacityOffset = 10;
                 if (opacity < OPACITY_LIMIT) {
                     opacity = opacity + opacityOffset;
 
-                    scaledBitmap = mRunnableDrawBitmap.calculateScaledBitmapSize(sourceBitmap);
-
-                    mRunnableDrawBitmap.updateBackgroundBitmap(scaledBitmap);
+                    mRunnableDrawBitmap.updateBackgroundBitmap(sourceBitmap);
                     mRunnableDrawBitmap.setShowBackgroundBitmap(true);
                     mRunnableDrawBitmap.setForwardBitmapOpacity(opacity);
 
@@ -146,8 +163,8 @@ public class BestMemoriesWallpaperService extends WallpaperService {
                     mRunnableDrawBitmap.resetStates();
                     mRunnableDrawBitmap.setShowBackgroundBitmap(false);
 
-                    mRunnableDrawBitmap.calculateRectanglePoints(scaledBitmap);
-                    mRunnableDrawBitmap.updateBitmap(scaledBitmap);
+                    mRunnableDrawBitmap.calculateRectanglePoints(sourceBitmap);
+                    mRunnableDrawBitmap.updateBitmap(sourceBitmap);
                 }
             }
         }

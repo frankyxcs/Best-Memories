@@ -26,4 +26,8 @@ public class BestMemoriesApplication extends Application {
                 .build();
     }
 
+
+    public BestMemoriesAppComponent getBestMemoriesComponent() {
+        return mBestMemoriesComponent;
+    }
 }
