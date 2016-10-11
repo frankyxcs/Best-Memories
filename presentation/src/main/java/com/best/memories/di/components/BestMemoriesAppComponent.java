@@ -1,5 +1,6 @@
 package com.best.memories.di.components;
 
+import com.best.memories.di.module.ActivityModule;
 import com.best.memories.di.module.BestMemoriesModule;
 import com.best.memories.service.BestMemoriesWallpaperService;
 
@@ -14,4 +15,6 @@ import dagger.Component;
 @Component(modules = BestMemoriesModule.class)
 public interface BestMemoriesAppComponent {
     void inject(BestMemoriesWallpaperService service);
+
+    ActivityComponent plus(ActivityModule activityModule);
 }

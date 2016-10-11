@@ -1,24 +1,28 @@
 package com.best.memories.service;
 
-import android.content.res.TypedArray;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
+import android.net.Uri;
 import android.os.Handler;
+import android.provider.MediaStore.Images.Media;
 import android.service.wallpaper.WallpaperService;
+import android.util.Log;
 import android.view.SurfaceHolder;
 
-import com.best.memories.R;
 import com.best.memories.application.BestMemoriesApplication;
 import com.best.memories.background.RunnableDrawImage;
 import com.best.memories.background.RunnableDrawImage.IDrawBitmap;
 import com.bestmemories.GlobalSharePreferences;
 
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 
 import javax.inject.Inject;
 
+import static com.best.memories.application.BestMemoriesApplication.TAG;
 import static com.bestmemories.GlobalSharePreferences.BITMAP_POSITION;
+import static com.bestmemories.GlobalSharePreferences.IMAGE_URIS;
 import static com.bestmemories.GlobalSharePreferences.SHARE_PREFERENCES_TYPE.INTEGER;
 
 /**
@@ -43,7 +47,7 @@ public class BestMemoriesWallpaperService extends WallpaperService {
     private class BestMemoriesWallpaperEngine extends Engine implements IDrawBitmap {
         static final int DELAY_MILLIS = 1;
         static final int UPDATE_OPACITY_SECOND = 2 * 1000;
-        private static final long TIME_UPDATE_BITMAP = 10 * 1000;
+        private static final long TIME_UPDATE_BITMAP = 30 * 1000;
 
         private final Handler mHandlerDrawBitmap = new Handler();
         private final Handler mHandlerUpdateBitmap = new Handler();
@@ -54,27 +58,30 @@ public class BestMemoriesWallpaperService extends WallpaperService {
         private List<Bitmap> mArrayBitmaps = new ArrayList<>();
 
         BestMemoriesWallpaperEngine() {
-            TypedArray typedArray = getResources().obtainTypedArray(R.array.image);
-            int defaultValue = -1;
+            HashSet<String> hashSet = (HashSet<String>) mPreferences.getSharedPreferences().getStringSet(IMAGE_URIS, null);
 
-            for (int i = 0; i < typedArray.length(); i++) {
-                int resId = typedArray.getResourceId(i, defaultValue);
-                Bitmap bitmap = BitmapFactory.decodeResource(getResources(), resId);
-                mArrayBitmaps.add(bitmap);
+            if (hashSet != null) {
+                for (String path : hashSet) {
+                    Uri uri = Uri.parse(path);
+                    try {
+                        Bitmap bitmap = Media.getBitmap(getContentResolver(), uri);
+                        mArrayBitmaps.add(bitmap);
+                    } catch (IOException e) {
+                        Log.e(TAG, e.toString());
+                    }
+                }
             }
-
-            typedArray.recycle();
         }
 
         @Override
         public void onSurfaceChanged(SurfaceHolder holder, int format, int width, int height) {
             super.onSurfaceChanged(holder, format, width, height);
             int position = mPreferences.getSharedPreferences().getInt(BITMAP_POSITION, DEF_VALUE);
+
             Bitmap bitmap = mArrayBitmaps.get(position);
 
             mRunnableDrawBitmap = new RunnableDrawImage(getSurfaceHolder());
             mRunnableDrawBitmap.setListener(this);
-
             mRunnableDrawBitmap.resetStates();
 
             mRunnableDrawBitmap.updateScreenResolution(width, height);
@@ -86,7 +93,6 @@ public class BestMemoriesWallpaperService extends WallpaperService {
         @Override
         public void onVisibilityChanged(boolean visible) {
             super.onVisibilityChanged(visible);
-
             if (visible) {
                 mHandlerDrawBitmap.post(mRunnableDrawBitmap);
                 mHandlerUpdateBitmap.postDelayed(mRunnableUpdateImage, TIME_UPDATE_BITMAP - UPDATE_OPACITY_SECOND);

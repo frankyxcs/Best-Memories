@@ -1,5 +1,6 @@
 package com.best.memories.background;
 
+import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Matrix;
@@ -27,9 +28,11 @@ public class RunnableDrawImage implements Runnable {
 
     private int mScreenHeight;
     private int mScreenWidth;
+    private int mForwardBitmapOpacity;
+    private int mValueBitmapHeight;
+    private int mValueBitmapWidth;
 
     private float mBaseTopForwardSide;
-    private float mBaseBottomForwardSide;
     private float mLeftForwardSide;
     private float mTopForwardSide;
     private float mRightForwardSide;
@@ -40,8 +43,6 @@ public class RunnableDrawImage implements Runnable {
     private Bitmap mBackgroundBitmap;
 
     private IDrawBitmap mListener;
-    private int mForwardBitmapOpacity;
-
 
     public RunnableDrawImage(SurfaceHolder surfaceHolder) {
         mSurfaceHolder = surfaceHolder;
@@ -66,7 +67,6 @@ public class RunnableDrawImage implements Runnable {
 
             if (mShowBackgroundBitmap) {
                 paint.setAlpha(MAX_BITMAP_OPACITY - mForwardBitmapOpacity);
-
             } else {
                 paint.setAlpha(MAX_BITMAP_OPACITY);
             }
@@ -113,18 +113,25 @@ public class RunnableDrawImage implements Runnable {
     }
 
     public Bitmap calculateScaledBitmapSize(Bitmap bitmap) {
-        int outWidth = bitmap.getWidth();
-        int outHeight = bitmap.getHeight();
+        int bitmapWidth = bitmap.getWidth();
+        int bitmapHeight = bitmap.getHeight();
 
-        if (mScreenWidth > outWidth || mScreenHeight > outHeight) {
-            int proportionValueWidth = 30;
-            int proportionValueHeight = 30;
+        if (mValueBitmapHeight == 0) {
+            mValueBitmapHeight = bitmapHeight / 2;
+        }
+
+        if (mValueBitmapWidth == 0) {
+            mValueBitmapWidth = bitmapWidth / 2;
+        }
+
+        if (mScreenHeight  > bitmapHeight || mScreenWidth > bitmapWidth) {
+            int proportionValue = 30;
             int proportionValueTwo = 100;
 
-            outWidth = outWidth + (outWidth * proportionValueWidth) / proportionValueTwo;
-            outHeight = outHeight + (outHeight * proportionValueHeight) / proportionValueTwo;
+            bitmapWidth = bitmapWidth + (bitmapWidth * proportionValue) / proportionValueTwo;
+            bitmapHeight = bitmapHeight + (bitmapHeight * proportionValue) / proportionValueTwo;
 
-            bitmap = Bitmap.createScaledBitmap(bitmap, outWidth, outHeight, true);
+            bitmap = Bitmap.createScaledBitmap(bitmap, bitmapWidth, bitmapHeight, true);
 
             return calculateScaledBitmapSize(bitmap);
         } else {
@@ -142,7 +149,6 @@ public class RunnableDrawImage implements Runnable {
         mBottomForwardSide = Math.abs(centerBitmapY + mScreenHeight / 2);
 
         mBaseTopForwardSide = mTopForwardSide;
-        mBaseBottomForwardSide = mBottomForwardSide;
     }
 
     private void calculateOffsetDirection() {
@@ -156,25 +162,19 @@ public class RunnableDrawImage implements Runnable {
     }
 
     private void zoomImageOut(float offset) {
-        if (mTopForwardSide <= mBaseTopForwardSide) {
-            mTopForwardSide = mTopForwardSide - offset;
-        }
-        if (mBottomForwardSide >= mBaseBottomForwardSide) {
-            mBottomForwardSide = mBottomForwardSide + offset;
-        }
+        mTopForwardSide = mTopForwardSide - offset;
+        mBottomForwardSide = mBottomForwardSide + offset;
 
-        if (mTopForwardSide == 0) {
+        float limit = 0;
+
+        if (mTopForwardSide <= limit) {
             mZoomIn = true;
         }
     }
 
     private void zoomImageIn(float offset) {
-        if (mTopForwardSide <= mBaseTopForwardSide) {
-            mTopForwardSide = mTopForwardSide + offset;
-        }
-        if (mBottomForwardSide >= mBaseBottomForwardSide) {
-            mBottomForwardSide = mBottomForwardSide - offset;
-        }
+        mTopForwardSide = mTopForwardSide + offset;
+        mBottomForwardSide = mBottomForwardSide - offset;
 
         if (mTopForwardSide == mBaseTopForwardSide) {
             mZoomIn = false;

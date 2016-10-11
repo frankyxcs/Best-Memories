@@ -10,18 +10,20 @@
     android:paddingTop="@dimen/activity_vertical_margin"
     tools:context=".mvp.view.activity.MainActivity">
 
-    <TextView
+    <Button
+        android:id="@+id/bt_gallery"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Hello World!"
-        android:id="@+id/textView"/>
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="175dp"
+        android:text="@string/choice_image_from_gallery"/>
 
     <Button
+        android:id="@+id/bt_social_network"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="@string/setWallpaper"
-        android:id="@+id/btSetWallpaper"
-        android:layout_below="@+id/textView"
+        android:layout_below="@+id/bt_gallery"
         android:layout_centerHorizontal="true"
-        android:layout_marginTop="175dp"/>
+        android:layout_marginTop="15dp"
+        android:text="@string/choice_image_social_network"/>
 </RelativeLayout>
